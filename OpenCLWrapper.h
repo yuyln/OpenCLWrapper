@@ -128,10 +128,13 @@ extern "C"
 
     void EnqueueND(cl_command_queue *queue, Kernel *kernel, cl_uint ndim, size_t *offset, 
                    size_t *globalWork, size_t *localWork);
+    void EnqueueNDk(cl_command_queue *queue, cl_kernel *kernel, cl_uint ndim, size_t *offset, 
+                   size_t *globalWork, size_t *localWork);
 
     void Finish(cl_command_queue *q);
 
     void SetKernelArg(Kernel *kernel, void *data, size_t datasize, cl_uint i);
+    void SetKernelArgk(cl_kernel *kernel, void *data, size_t datasize, cl_uint i);
 #ifdef __cplusplus
 }
 #endif //__cplusplus
@@ -418,6 +421,13 @@ void EnqueueND(cl_command_queue *queue, Kernel *kernel, cl_uint ndim, size_t *of
     PrintCLError(stderr, err, "ENQUEUE ND RANGE KERNEL %s", kernel->name);
 }
 
+void EnqueueNDk(cl_command_queue *queue, cl_kernel *kernel, cl_uint ndim, size_t *offset, 
+                size_t *globalWork, size_t *localWork)
+{
+    int err = clEnqueueNDRangeKernel(*queue, *kernel, ndim, offset, globalWork, localWork, 0, NULL, NULL);
+    PrintCLError(stderr, err, "ENQUEUE ND RANGE KERNEL");
+}
+
 void Finish(cl_command_queue *q)
 {
     int err = clFinish(*q);
@@ -428,6 +438,12 @@ void SetKernelArg(Kernel *kernel, void *data, size_t datasize, cl_uint i)
 {
     int err = clSetKernelArg(*(kernel->kernel), i, datasize, data);
     PrintCLError(stderr, err, "ERROR SETTING ARG %d OF KERNEL %s", i, kernel->name);
+}
+
+void SetKernelArgk(cl_kernel *kernel, void *data, size_t datasize, cl_uint i)
+{
+    int err = clSetKernelArg(*kernel, i, datasize, data);
+    PrintCLError(stderr, err, "ERROR SETTING ARG %d OF SIZE %u", i, datasize);
 }
 
 #endif // HEADER_IMPL
