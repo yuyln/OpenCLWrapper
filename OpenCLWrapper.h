@@ -25,7 +25,16 @@
 extern "C"
 {
 #endif
-    //TODO: add a kernel struct, with cl_kernel and char *name
+    //TODO: can be better?
+    typedef struct
+    {
+        cl_kernel *kernel;
+        const char *name;
+    } Kernel;
+
+    void InitKernelStruct(Kernel *K, cl_kernel *k, const char *name);
+    void InitKernelsStruct(Kernel **K, cl_kernel *k, const char **name, int n);
+
     static const char *errors[60] = {
                                 "CL_SUCCESS",
                                 "CL_DEVICE_NOT_FOUND",
@@ -114,17 +123,33 @@ extern "C"
     void InitGroupWorkItemsGCD(int nDims, int *nTodo, size_t **WorkTodo, cl_device_id *device);
     void InitGroupWorkItemsYGCD(int nDims, int *nTodo, size_t **WorkTodo, int YGCD);
 
-    void EnqueueND(cl_command_queue *queue, cl_kernel *kernel, cl_uint ndim, size_t *offset, 
+    void EnqueueND(cl_command_queue *queue, Kernel *kernel, cl_uint ndim, size_t *offset, 
                    size_t *globalWork, size_t *localWork);
 
     void Finish(cl_command_queue *q);
 
-    void SetKernelArg(cl_kernel *kernel, void *data, size_t datasize, cl_uint i);
+    void SetKernelArg(Kernel *kernel, void *data, size_t datasize, cl_uint i);
 #ifdef __cplusplus
 }
 #endif //__cplusplus
 
 #ifdef HEADER_IMPL
+
+void InitKernelStruct(Kernel *K, cl_kernel *k, const char *name)
+{
+    K->kernel = k;
+    K->name = name;
+}
+
+void InitKernelsStruct(Kernel **K, cl_kernel *k, const char **name, int n)
+{
+    int err;
+    *K = (Kernel*) malloc(sizeof(Kernel) * n);
+    for (int i = 0; i < n; i++)
+    {
+        InitKernelStruct(&(*K)[i], &k[i], name[i]);
+    }
+}
 
 void PrintCLError_(FILE *f, int err, const char *m, int line, const char *file)
 {
@@ -366,11 +391,11 @@ void InitGroupWorkItemsYGCD(int nDims, int *nTodo, size_t **WorkTodo, int YGCD)
     }
 }
 
-void EnqueueND(cl_command_queue *queue, cl_kernel *kernel, cl_uint ndim, size_t *offset, 
-               size_t *globalWork, size_t *localWork)
+void EnqueueND(cl_command_queue *queue, Kernel *kernel, cl_uint ndim, size_t *offset, 
+                size_t *globalWork, size_t *localWork)
 {
-    int err = clEnqueueNDRangeKernel(*queue, *kernel, ndim, offset, globalWork, localWork, 0, NULL, NULL);
-    PrintCLError(stderr, err, "ENQUEUE ND RANGE KERNEL");
+    int err = clEnqueueNDRangeKernel(*queue, *(kernel->kernel), ndim, offset, globalWork, localWork, 0, NULL, NULL);
+    PrintCLError(stderr, err, "ENQUEUE ND RANGE KERNEL %s", kernel->name);
 }
 
 void Finish(cl_command_queue *q)
@@ -379,10 +404,10 @@ void Finish(cl_command_queue *q)
     PrintCLError(stderr, err, "FINISH QUEUE");
 }
 
-void SetKernelArg(cl_kernel *kernel, void *data, size_t datasize, cl_uint i)
+void SetKernelArg(Kernel *kernel, void *data, size_t datasize, cl_uint i)
 {
-    int err = clSetKernelArg(*kernel, i, datasize, data);
-    PrintCLError(stderr, err, "ERROR SETTING ARG %d OF SIZE %u", i, datasize);
+    int err = clSetKernelArg(*(kernel->kernel), i, datasize, data);
+    PrintCLError(stderr, err, "ERROR SETTING ARG %d OF KERNEL %s", i, kernel->name);
 }
 
 #endif // HEADER_IMPL

@@ -19,6 +19,7 @@ int main(void)
     cl_context context;
     cl_program program;
     cl_kernel *ks;
+    Kernel *Ks;
     char **kernelnames = (char**)malloc(sizeof(char*));
     *kernelnames = "AddMatrix";
     size_t *globalWork;
@@ -32,6 +33,7 @@ int main(void)
     InitProgram(&program, &context, 1, (const char**)&kernel);
     BuildProgram(&program, ndev, devices, NULL);
     InitKernels(&ks, &program, (const char**)kernelnames, 1);
+    InitKernelsStruct(&Ks, ks, (const char**)kernelnames, 1);
     int nr = 4, nc = 4;
     int nT = nr * nc;
     double *A = malloc(sizeof(double) * nT);
@@ -58,13 +60,13 @@ int main(void)
     InitGlobalWorkItems(1, &nT, &globalWork);
     InitGroupWorkItemsGCD(1, &nT, &localWork, devices);
 
-    SetKernelArg(&ks[0], &bA, sizeof(cl_mem), 0);
-    SetKernelArg(&ks[0], &bB, sizeof(cl_mem), 1);
-    SetKernelArg(&ks[0], &bC, sizeof(cl_mem), 2);
-    SetKernelArg(&ks[0], &nr, sizeof(int), 3);
-    SetKernelArg(&ks[0], &nc, sizeof(int), 4);
+    SetKernelArg(&Ks[0], &bA, sizeof(cl_mem), 0);
+    SetKernelArg(&Ks[0], &bB, sizeof(cl_mem), 1);
+    SetKernelArg(&Ks[0], &bC, sizeof(cl_mem), 2);
+    SetKernelArg(&Ks[0], &nr, sizeof(int), 3);
+    SetKernelArg(&Ks[0], &nc, sizeof(int), 4);
 
-    EnqueueND(&queue, ks, 1, NULL, globalWork, localWork);
+    EnqueueND(&queue, Ks, 1, NULL, globalWork, localWork);
     Finish(&queue);
 
     ReadBuffer(&bC, (void*)C, sizeof(double) * nT, queue);
