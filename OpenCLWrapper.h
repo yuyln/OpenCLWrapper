@@ -6,7 +6,18 @@
 #include <string.h>
 #include <stdbool.h>
 #define HEADER_IMPL
-#define PrintCLError(file, err, message) PrintCLError_(file, err, message, __LINE__, __FILE__)
+// #define PrintCLError(file, err, message) PrintCLError_(file, err, message, __LINE__, __FILE__)
+
+#define PrintCLError(file, err, message, args...) ({                                                                         \
+                                            if (err != 0)                                                                    \
+                                            {                                                                                \
+                                                fprintf(file, "%s: %d OPENCLWRAPPER ERROR %d: ", __FILE__, __LINE__, err);   \
+                                                fprintf(file, message, ##args);                                              \
+                                                fprintf(file, "\n");                                                         \
+                                                exit(err);                                                                   \
+                                            }                                                                                \
+                                          })
+
 
 #ifdef __cplusplus
 extern "C"
@@ -37,6 +48,13 @@ extern "C"
     void InitGlobalWorkItems(int nDims, int *nTodo, size_t **WorkTodo);
     void InitGroupWorkItemsGCD(int nDims, int *nTodo, size_t **WorkTodo, cl_device_id *device);
     void InitGroupWorkItemsYGCD(int nDims, int *nTodo, size_t **WorkTodo, int YGCD);
+
+    void EnqueueND(cl_command_queue *queue, cl_kernel *kernel, cl_uint ndim, size_t *offset, 
+                   size_t *globalWork, size_t *localWork);
+
+    void Finish(cl_command_queue *q);
+
+    void SetKernelArg(cl_kernel *kernel, void *data, size_t datasize, cl_uint i);
 #ifdef __cplusplus
 }
 #endif //__cplusplus
@@ -276,6 +294,26 @@ void InitGroupWorkItemsYGCD(int nDims, int *nTodo, size_t **WorkTodo, int YGCD)
         (*WorkTodo)[i] = gcd(YGCD, nTodo[i]);
     }
 }
+
+void EnqueueND(cl_command_queue *queue, cl_kernel *kernel, cl_uint ndim, size_t *offset, 
+               size_t *globalWork, size_t *localWork)
+{
+    int err = clEnqueueNDRangeKernel(*queue, *kernel, ndim, offset, globalWork, localWork, 0, NULL, NULL);
+    PrintCLError(stderr, err, "ENQUEUE ND RANGE KERNEL");
+}
+
+void Finish(cl_command_queue *q)
+{
+    int err = clFinish(*q);
+    PrintCLError(stderr, err, "FINISH QUEUE");
+}
+
+void SetKernelArg(cl_kernel *kernel, void *data, size_t datasize, cl_uint i)
+{
+    int err = clSetKernelArg(*kernel, i, datasize, data);
+    PrintCLError(stderr, err, "ERROR SETTING ARG %d", i);
+}
+
 #endif // HEADER_IMPL
 
 #endif //__OPENCLW
