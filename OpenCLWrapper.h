@@ -25,6 +25,7 @@
 extern "C"
 {
 #endif
+    //TODO: add a kernel struct, with cl_kernel and char *name
     static const char *errors[60] = {
                                 "CL_SUCCESS",
                                 "CL_DEVICE_NOT_FOUND",
@@ -105,6 +106,7 @@ extern "C"
     void InitContext(cl_context *context, cl_device_id *device);
     void InitQueue(cl_command_queue *queue, cl_context *context, cl_device_id *device);
     void InitKernels(cl_kernel **kernels, cl_program *program, const char **names, int n);
+    void InitKernel(cl_kernel *kernel, cl_program *program, const char *name);
     void InitProgram(cl_program *program, cl_context *context, int n, const char **names);
     void BuildProgram(cl_program *program, int ndevices, cl_device_id *devices, const char *opt);
 
@@ -296,14 +298,20 @@ void InitQueue(cl_command_queue *queue, cl_context *context, cl_device_id *devic
     PrintCLError(stderr, err, "CREATE QUEUE");
 }
 
+void InitKernel(cl_kernel *kernel, cl_program *program, const char *name)
+{
+    int err;
+    *kernel = clCreateKernel(*program, name, &err);
+    PrintCLError(stderr, err, "CREATE KERNEL %s", name);
+}
+
 void InitKernels(cl_kernel **kernels, cl_program *program, const char **names, int n)
 {
     int err;
     *kernels = (cl_kernel*) malloc(sizeof(cl_kernel) * n);
     for (int i = 0; i < n; i++)
     {
-        (*kernels)[i] = clCreateKernel(*program, names[i], &err);
-        PrintCLError(stderr, err, "CREATE KERNEL");
+        InitKernel(&(*kernels)[i], program, names[i]);
     }
 }
 
