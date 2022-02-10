@@ -254,7 +254,7 @@ void InitGlobalWorkItems(int nDims, int *nTodo, size_t **WorkTodo)
     *WorkTodo = (size_t*)malloc(sizeof(size_t) * nDims);
     for (int i = 0; i < nDims; i++)
     {
-        WorkTodo[i] = nTodo[i];
+        (*WorkTodo)[i] = nTodo[i];
     }
 }
 
@@ -264,7 +264,7 @@ void InitGroupWorkItemsGCD(int nDims, int *nTodo, size_t **WorkTodo, cl_device_i
     size_t maxW = GetMaxWorkFromDevice(device) / 2;
     for (int i = 0; i < nDims; i++)
     {
-        WorkTodo[i] = gcd(maxW, nTodo[i]);
+        (*WorkTodo)[i] = gcd(maxW, nTodo[i]);
     }
 }
 
@@ -273,7 +273,7 @@ void InitGroupWorkItemsYGCD(int nDims, int *nTodo, size_t **WorkTodo, int YGCD)
     *WorkTodo = (size_t*)malloc(sizeof(size_t) * nDims);
     for (int i = 0; i < nDims; i++)
     {
-        WorkTodo[i] = gcd(YGCD, nTodo[i]);
+        (*WorkTodo)[i] = gcd(YGCD, nTodo[i]);
     }
 }
 #endif // HEADER_IMPL
