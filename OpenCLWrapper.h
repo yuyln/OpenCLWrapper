@@ -26,9 +26,11 @@ extern "C"
 
     void InitPlatforms(cl_platform_id **plat, int *n);
     void InitDevice(cl_device_id **devices, cl_platform_id plat, int iplat, int *n);
-    void InitContext(cl_context *context);
-    void InitQueue(cl_command_queue *queue);
-    void InitKernels(cl_kernel *kernels, const char **names, int n);
+    void InitContext(cl_context *context, cl_device_id *device);
+    void InitQueue(cl_command_queue *queue, cl_context *context, cl_device_id *device);
+    void InitKernels(cl_kernel **kernels, cl_program *program, const char **names, int n);
+    void InitProgram(cl_program *program, cl_context *context, int n, const char **names);
+    void BuildProgram(cl_program *program, int ndevices, cl_device_id *devices, const char *opt);
 
 #ifdef __cplusplus
 }
@@ -154,15 +156,86 @@ void InitDevice(cl_device_id **devices, cl_platform_id plat, int iplat, int *n)
         PrintCLError(stderr, err, "GET DEVICE INFO");
         printf("PLATAFORM[%d] DEVICE [%d] NAME: %s\n", iplat, i, deviceinfo);
         free(deviceinfo);
+
+
+        size_t dims;
+        err = clGetDeviceInfo((*devices)[i], CL_DEVICE_MAX_WORK_ITEM_SIZES, 0, NULL, &dims);
+        PrintCLError(stderr, err, "GET DEVICE MAX DIMS");
+        dims = dims / sizeof(size_t);
+        printf("PLATAFORM[%d] DEVICE [%d] MAX DIMS: %u\n", iplat, i, dims);
+
+
+        size_t maxWork;
+        err = clGetDeviceInfo((*devices)[i], CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(size_t), &maxWork, NULL);
+        PrintCLError(stderr, err, "GET DEVICE MAX WORK GROUP SIZE");
+        printf("PLATAFORM[%d] DEVICE [%d] MAX WORK GROUP SIZE: %u\n", iplat, i, maxWork);
+
+
+        size_t *maxWorkPerGroup = (size_t*) malloc(sizeof(size_t) * dims);
+        err = clGetDeviceInfo((*devices)[i], CL_DEVICE_MAX_WORK_ITEM_SIZES, sizeof(size_t) * dims, maxWorkPerGroup, NULL);
+
+        PrintCLError(stderr, err, "GET DEVICE MAX WORK DIMS");
+        printf("PLATAFORM[%d] DEVICE [%d] MAX WORK PER DIM: ( ", iplat, i);
+        for (int i = 0; i < dims - 1; i++)
+        {
+            printf("%d, ", maxWorkPerGroup[i]);
+        }
+        printf("%d )\n", maxWorkPerGroup[dims - 1]);
     }
     if (n != NULL)
     {
         *n = n_;
     }
 }
-// void InitContext(cl_context *context);
-// void InitQueue(cl_command_queue *queue);
-// void InitKernels(cl_kernel *kernels, const char **names, int n);
+
+void InitContext(cl_context *context, cl_device_id *device)
+{
+    int err;
+    *context = clCreateContext(NULL, 1, device, NULL, NULL, &err);
+    PrintCLError(stderr, err, "CREATE CONTEXT");
+}
+
+void InitQueue(cl_command_queue *queue, cl_context *context, cl_device_id *device)
+{
+    int err;
+    *queue = clCreateCommandQueue(*context, *device, 0, &err);
+    PrintCLError(stderr, err, "CREATE QUEUE");
+}
+
+
+void InitKernels(cl_kernel **kernels, cl_program *program, const char **names, int n)
+{
+    int err;
+    *kernels = (cl_kernel*) malloc(sizeof(cl_kernel) * n);
+    for (int i = 0; i < n; i++)
+    {
+        (*kernels)[i] = clCreateKernel(*program, names[i], &err);
+        PrintCLError(stderr, err, "CREATE KERNEL");
+    }
+}
+
+void InitProgram(cl_program *program, cl_context *context, int n, const char **names)
+{
+    int err;
+    *program = clCreateProgramWithSource(*context, n, names, NULL, &err);
+    PrintCLError(stderr, err, "CREATE PROGRAM");
+}
+
+void BuildProgram(cl_program *program, int ndevices, cl_device_id *devices, const char *opt)
+{
+    int err = clBuildProgram(*program, ndevices, devices, opt, NULL, NULL);
+    
+    for (int i = 0; i < ndevices; i++)
+    {
+        size_t length;
+        err = clGetProgramBuildInfo(*program, devices[i], CL_PROGRAM_BUILD_LOG, 0, NULL, &length);
+        char *buildlog = malloc(length);
+        err = clGetProgramBuildInfo(*program, devices[i], CL_PROGRAM_BUILD_LOG, length, buildlog, NULL);
+        printf("PROGRAM ON DEVICE[%d] BUILD LOG: %s\n", i, buildlog);
+        PrintCLError(stderr, err, "GET PROGRAM BUILD LOG");
+        free(buildlog);
+    }
+}
 #endif // HEADER_IMPL
 
 #endif //__OPENCLW
