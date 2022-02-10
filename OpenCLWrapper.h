@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 #define HEADER_IMPL
 #define PrintCLError(file, err, message) PrintCLError_(file, err, message, __LINE__, __FILE__)
 
@@ -26,12 +27,16 @@ extern "C"
 
     void InitPlatforms(cl_platform_id **plat, int *n);
     void InitDevice(cl_device_id **devices, cl_platform_id plat, int iplat, int *n);
+    size_t GetMaxWorkFromDevice(cl_device_id *device);
     void InitContext(cl_context *context, cl_device_id *device);
     void InitQueue(cl_command_queue *queue, cl_context *context, cl_device_id *device);
     void InitKernels(cl_kernel **kernels, cl_program *program, const char **names, int n);
     void InitProgram(cl_program *program, cl_context *context, int n, const char **names);
     void BuildProgram(cl_program *program, int ndevices, cl_device_id *devices, const char *opt);
 
+    void InitGlobalWorkItems(int nDims, int *nTodo, size_t **WorkTodo);
+    void InitGroupWorkItemsGCD(int nDims, int *nTodo, size_t **WorkTodo, cl_device_id *device);
+    void InitGroupWorkItemsYGCD(int nDims, int *nTodo, size_t **WorkTodo, int YGCD);
 #ifdef __cplusplus
 }
 #endif //__cplusplus
@@ -87,7 +92,7 @@ void ReadFile(const char *path, char **out)
     size_t filesize = ftell(f);
     fseek(f, 0, SEEK_SET);
 
-    *out = malloc(filesize + 1);
+    *out = (char*)malloc(filesize + 1);
     size_t readsize = fread((void *)(*out), 1, filesize, f);
     if (readsize != filesize)
     {
@@ -110,7 +115,7 @@ long unsigned int gcd(long unsigned int a, long unsigned int b)
 
 void InitPlatforms(cl_platform_id **plat, int *n)
 {
-    int n_;
+    cl_uint n_;
     int err = clGetPlatformIDs(0, NULL, &n_);
     PrintCLError(stderr, err, "GET PLATAFORMS");
     *plat = (cl_platform_id *)malloc(sizeof(cl_platform_id) * n_);
@@ -123,7 +128,7 @@ void InitPlatforms(cl_platform_id **plat, int *n)
         char *platinfo;
         err = clGetPlatformInfo((*plat)[i], CL_PLATFORM_NAME, 0, NULL, &size);
         PrintCLError(stderr, err, "GET PLATFORM INFO SIZE");
-        platinfo = malloc(size);
+        platinfo = (char*)malloc(size);
         err = clGetPlatformInfo((*plat)[i], CL_PLATFORM_NAME, size, platinfo, NULL);
         PrintCLError(stderr, err, "GET PLATFORM INFO");
         printf("PLATAFORM[%d] NAME: %s\n", i, platinfo);
@@ -138,7 +143,7 @@ void InitPlatforms(cl_platform_id **plat, int *n)
 
 void InitDevice(cl_device_id **devices, cl_platform_id plat, int iplat, int *n)
 {
-    int n_;
+    cl_uint n_;
     int err = clGetDeviceIDs(plat, CL_DEVICE_TYPE_ALL, 0, NULL, &n_);
     PrintCLError(stderr, err, "GET NUMBER OF DEVICES");
     *devices = (cl_device_id*)malloc(sizeof(cl_device_id) * n_);
@@ -151,7 +156,7 @@ void InitDevice(cl_device_id **devices, cl_platform_id plat, int iplat, int *n)
         char *deviceinfo;
         err = clGetDeviceInfo((*devices)[i], CL_DEVICE_NAME, 0, NULL, &size);
         PrintCLError(stderr, err, "GET DEVICE INFO SIZE");
-        deviceinfo = malloc(size);
+        deviceinfo = (char*)malloc(size);
         err = clGetDeviceInfo((*devices)[i], CL_DEVICE_NAME, size, deviceinfo, NULL);
         PrintCLError(stderr, err, "GET DEVICE INFO");
         printf("PLATAFORM[%d] DEVICE [%d] NAME: %s\n", iplat, i, deviceinfo);
@@ -188,6 +193,14 @@ void InitDevice(cl_device_id **devices, cl_platform_id plat, int iplat, int *n)
     }
 }
 
+size_t GetMaxWorkFromDevice(cl_device_id *device)
+{
+    size_t maxWork;
+    int err = clGetDeviceInfo(*device, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(size_t), &maxWork, NULL);
+    PrintCLError(stderr, err, "GET DEVICE MAX WORK GROUP SIZE");
+    return maxWork;
+}
+
 void InitContext(cl_context *context, cl_device_id *device)
 {
     int err;
@@ -201,7 +214,6 @@ void InitQueue(cl_command_queue *queue, cl_context *context, cl_device_id *devic
     *queue = clCreateCommandQueue(*context, *device, 0, &err);
     PrintCLError(stderr, err, "CREATE QUEUE");
 }
-
 
 void InitKernels(cl_kernel **kernels, cl_program *program, const char **names, int n)
 {
@@ -224,16 +236,44 @@ void InitProgram(cl_program *program, cl_context *context, int n, const char **n
 void BuildProgram(cl_program *program, int ndevices, cl_device_id *devices, const char *opt)
 {
     int err = clBuildProgram(*program, ndevices, devices, opt, NULL, NULL);
-    
+
     for (int i = 0; i < ndevices; i++)
     {
         size_t length;
         err = clGetProgramBuildInfo(*program, devices[i], CL_PROGRAM_BUILD_LOG, 0, NULL, &length);
-        char *buildlog = malloc(length);
+        char *buildlog = (char*)malloc(length);
         err = clGetProgramBuildInfo(*program, devices[i], CL_PROGRAM_BUILD_LOG, length, buildlog, NULL);
         printf("PROGRAM ON DEVICE[%d] BUILD LOG: %s\n", i, buildlog);
         PrintCLError(stderr, err, "GET PROGRAM BUILD LOG");
         free(buildlog);
+    }
+}
+
+void InitGlobalWorkItems(int nDims, int *nTodo, size_t **WorkTodo)
+{
+    *WorkTodo = (size_t*)malloc(sizeof(size_t) * nDims);
+    for (int i = 0; i < nDims; i++)
+    {
+        WorkTodo[i] = nTodo[i];
+    }
+}
+
+void InitGroupWorkItemsGCD(int nDims, int *nTodo, size_t **WorkTodo, cl_device_id *device)
+{
+    *WorkTodo = (size_t*)malloc(sizeof(size_t) * nDims);
+    size_t maxW = GetMaxWorkFromDevice(device) / 2;
+    for (int i = 0; i < nDims; i++)
+    {
+        WorkTodo[i] = gcd(maxW, nTodo[i]);
+    }
+}
+
+void InitGroupWorkItemsYGCD(int nDims, int *nTodo, size_t **WorkTodo, int YGCD)
+{
+    *WorkTodo = (size_t*)malloc(sizeof(size_t) * nDims);
+    for (int i = 0; i < nDims; i++)
+    {
+        WorkTodo[i] = gcd(YGCD, nTodo[i]);
     }
 }
 #endif // HEADER_IMPL

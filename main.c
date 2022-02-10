@@ -17,6 +17,8 @@ int main(void)
     cl_command_queue queue;
     cl_context context;
     cl_program program;
+    cl_kernel *ks;
+    const char *kernelnames = "ATT";
 
     ReadFile("test.txt", &kernel);
     InitPlatforms(&plats, &nplats);
@@ -25,5 +27,6 @@ int main(void)
     InitQueue(&queue, &context, devices);
     InitProgram(&program, &context, 1, (const char**)&kernel);
     BuildProgram(&program, ndev, devices, NULL);
+    InitKernels(&ks, &program, &kernelnames, 1);
     return 0;
 }
