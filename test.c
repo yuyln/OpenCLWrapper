@@ -32,8 +32,8 @@ int main(void)
     InitQueue(&queue, &context, devices);
     InitProgram(&program, &context, 1, (const char**)&kernel);
     BuildProgram(&program, ndev, devices, NULL);
-    InitKernels(&ks, &program, (const char**)kernelnames, 1);
-    InitKernelsStruct(&Ks, ks, (const char**)kernelnames, 1);
+    InitKernelsStructGround(&Ks, &ks, &program, (const char**)kernelnames, 1);
+
     int nr = 4, nc = 4;
     int nT = nr * nc;
     double *A = malloc(sizeof(double) * nT);

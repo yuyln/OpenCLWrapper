@@ -35,6 +35,9 @@ extern "C"
     void InitKernelStruct(Kernel *K, cl_kernel *k, const char *name);
     void InitKernelsStruct(Kernel **K, cl_kernel *k, const char **name, int n);
 
+    void InitKernelStructGround(Kernel *K, cl_kernel *k, cl_program *program, const char *name);
+    void InitKernelsStructGround(Kernel **K, cl_kernel **k, cl_program *program, const char **name, int n);
+
     static const char *errors[60] = {
                                 "CL_SUCCESS",
                                 "CL_DEVICE_NOT_FOUND",
@@ -148,6 +151,23 @@ void InitKernelsStruct(Kernel **K, cl_kernel *k, const char **name, int n)
     for (int i = 0; i < n; i++)
     {
         InitKernelStruct(&(*K)[i], &k[i], name[i]);
+    }
+}
+
+void InitKernelStructGround(Kernel *K, cl_kernel *k, cl_program *program, const char *name)
+{
+    InitKernel(k, program, name);
+    K->kernel = k;
+    K->name = name;
+}
+
+void InitKernelsStructGround(Kernel **K, cl_kernel **k, cl_program *program, const char **name, int n)
+{
+    InitKernels(k, program, name, n);
+    *K = (Kernel*) malloc(sizeof(Kernel) * n);
+    for (int i = 0; i < n; i++)
+    {
+        InitKernelStruct(&(*K)[i], &(*k)[i], name[i]);
     }
 }
 
