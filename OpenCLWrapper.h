@@ -25,7 +25,7 @@
 extern "C"
 {
 #endif
-    static char *errors[60] = {
+    static const char *errors[60] = {
                                 "CL_SUCCESS",
                                 "CL_DEVICE_NOT_FOUND",
                                 "CL_DEVICE_NOT_AVAILABLE",
