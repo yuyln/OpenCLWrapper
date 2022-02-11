@@ -7,7 +7,7 @@
 #include <stdbool.h>
 #include <errno.h>
 
-#define PrintCLError(file, err, message, args...) ({                                                                                             \
+#define PrintCLError(file, err, message, ...) {                                                                                             \
                                             if (err != 0)                                                                                        \
                                             {                                                                                                    \
                                                 fprintf(file, "%s: %d OPENCLWRAPPER ERROR %d: ", __FILE__, __LINE__, err);\
@@ -15,11 +15,11 @@
                                                 if (err_ >= 30)\
                                                     err_ = err_ - 10;\
                                                 fprintf(file, "%s | ", errors[err_]);\
-                                                fprintf(file, message, ##args);                                                                  \
+                                                fprintf(file, message, ##__VA_ARGS__);                                                                  \
                                                 fprintf(file, "\n");                                                                             \
                                                 exit(err);                                                                                       \
                                             }                                                                                                    \
-                                          })
+                                          }
 
 
 #ifdef __cplusplus
@@ -150,7 +150,6 @@ void InitKernelStruct(Kernel *K, cl_kernel *k, const char *name)
 
 void InitKernelsStruct(Kernel **K, cl_kernel *k, const char **name, int n)
 {
-    int err;
     *K = (Kernel*) malloc(sizeof(Kernel) * n);
     for (int i = 0; i < n; i++)
     {
@@ -300,13 +299,13 @@ void InitDevice(cl_device_id **devices, cl_platform_id plat, int iplat, int *n)
         err = clGetDeviceInfo((*devices)[i], CL_DEVICE_MAX_WORK_ITEM_SIZES, 0, NULL, &dims);
         PrintCLError(stderr, err, "GET DEVICE MAX DIMS");
         dims = dims / sizeof(size_t);
-        printf("PLATAFORM[%d] DEVICE [%d] MAX DIMS: %u\n", iplat, i, dims);
+        printf("PLATAFORM[%d] DEVICE [%d] MAX DIMS: %llu\n", iplat, i, dims);
 
 
         size_t maxWork;
         err = clGetDeviceInfo((*devices)[i], CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(size_t), &maxWork, NULL);
         PrintCLError(stderr, err, "GET DEVICE MAX WORK GROUP SIZE");
-        printf("PLATAFORM[%d] DEVICE [%d] MAX WORK GROUP SIZE: %u\n", iplat, i, maxWork);
+        printf("PLATAFORM[%d] DEVICE [%d] MAX WORK GROUP SIZE: %llu\n", iplat, i, maxWork);
 
 
         size_t *maxWorkPerGroup = (size_t*) malloc(sizeof(size_t) * dims);
@@ -316,9 +315,9 @@ void InitDevice(cl_device_id **devices, cl_platform_id plat, int iplat, int *n)
         printf("PLATAFORM[%d] DEVICE [%d] MAX WORK PER DIM: ( ", iplat, i);
         for (int i = 0; i < dims - 1; i++)
         {
-            printf("%d, ", maxWorkPerGroup[i]);
+            printf("%lld, ", maxWorkPerGroup[i]);
         }
-        printf("%d )\n", maxWorkPerGroup[dims - 1]);
+        printf("%lld )\n", maxWorkPerGroup[dims - 1]);
     }
     if (n != NULL)
     {
@@ -357,7 +356,6 @@ void InitKernel(cl_kernel *kernel, cl_program *program, const char *name)
 
 void InitKernels(cl_kernel **kernels, cl_program *program, const char **names, int n)
 {
-    int err;
     *kernels = (cl_kernel*) malloc(sizeof(cl_kernel) * n);
     for (int i = 0; i < n; i++)
     {
@@ -445,7 +443,7 @@ void SetKernelArg(Kernel *kernel, void *data, size_t datasize, cl_uint i)
 void SetKernelArgk(cl_kernel *kernel, void *data, size_t datasize, cl_uint i)
 {
     int err = clSetKernelArg(*kernel, i, datasize, data);
-    PrintCLError(stderr, err, "ERROR SETTING ARG %d OF SIZE %u", i, datasize);
+    PrintCLError(stderr, err, "ERROR SETTING ARG %d OF SIZE %llu", i, datasize);
 }
 
 #endif // HEADER_IMPL

@@ -8,7 +8,7 @@
 
 int main(void)
 {
-    int i = 0;
+    int i = 1;
     int nplats, ndev;
     char *kernel;
 
