@@ -254,7 +254,7 @@ void InitPlatforms(cl_platform_id **plat, int *n)
 
     err = clGetPlatformIDs(n_, *plat, NULL);
 
-    for (int i = 0; i < n_; i++)
+    for (cl_uint i = 0; i < n_; i++)
     {
         size_t size;
         char *platinfo;
@@ -282,7 +282,7 @@ void InitDevice(cl_device_id **devices, cl_platform_id plat, int iplat, int *n)
     err = clGetDeviceIDs(plat, CL_DEVICE_TYPE_ALL, n_, *devices, NULL);
     PrintCLError(stderr, err, "GET DEVICES IDS");
 
-    for (int i = 0; i < n_; i++)
+    for (cl_uint i = 0; i < n_; i++)
     {
         size_t size;
         char *deviceinfo;
@@ -313,7 +313,7 @@ void InitDevice(cl_device_id **devices, cl_platform_id plat, int iplat, int *n)
 
         PrintCLError(stderr, err, "GET DEVICE MAX WORK DIMS");
         printf("PLATAFORM[%d] DEVICE [%d] MAX WORK PER DIM: ( ", iplat, i);
-        for (int i = 0; i < dims - 1; i++)
+        for (cl_uint i = 0; i < dims - 1; i++)
         {
             printf("%lld, ", maxWorkPerGroup[i]);
         }
