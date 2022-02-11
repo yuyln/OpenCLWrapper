@@ -230,6 +230,7 @@ void ReadFile(const char *path, char **out)
         PrintCLError(stderr, -1, "READSIZE AND FILESIZE ARE NOT EQUAL");
     }
     (*out)[filesize] = '\0';
+    fclose(f);
 }
 
 long unsigned int gcd(long unsigned int a, long unsigned int b)
