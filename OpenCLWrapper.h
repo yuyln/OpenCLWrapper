@@ -216,7 +216,7 @@ void ReadBufferOff(cl_mem *buffer, void *data, size_t datasize, size_t off, cl_c
 
 void ReadFile(const char *path, char **out)
 {
-    FILE *f = fopen(path, "r");
+    FILE *f = fopen(path, "rb");
     PrintCLError(stderr, errno, strerror(errno));
     fseek(f, 0, SEEK_SET);
     fseek(f, 0, SEEK_END);
