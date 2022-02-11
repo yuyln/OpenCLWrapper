@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <errno.h>
 
 #define PrintCLError(file, err, message, args...) ({                                                                                             \
                                             if (err != 0)                                                                                        \
