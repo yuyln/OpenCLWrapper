@@ -393,7 +393,7 @@ void BuildProgramOnDevice(cl_program *program, int idevice, cl_device_id *device
     size_t length;
     err = clGetProgramBuildInfo(*program, *device, CL_PROGRAM_BUILD_LOG, 0, NULL, &length);
     char *buildlog = (char*)malloc(length);
-    err = clGetProgramBuildInfo(*program, *devices, CL_PROGRAM_BUILD_LOG, length, buildlog, NULL);
+    err = clGetProgramBuildInfo(*program, *device, CL_PROGRAM_BUILD_LOG, length, buildlog, NULL);
     printf("PROGRAM ON DEVICE[%d] BUILD LOG: %s\n", idevice, buildlog);
     PrintCLError(stderr, err, "GET PROGRAM BUILD LOG");
     free(buildlog);
