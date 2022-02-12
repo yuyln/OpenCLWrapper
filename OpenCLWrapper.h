@@ -122,6 +122,7 @@ extern "C"
     void InitKernel(cl_kernel *kernel, cl_program *program, const char *name);
     void InitProgram(cl_program *program, cl_context *context, int n, const char **names);
     void BuildProgram(cl_program *program, int ndevices, cl_device_id *devices, const char *opt);
+    void BuildProgramOnDevice(cl_program *program, int idevice, cl_device_id *device, const char *opt);
 
     void InitGlobalWorkItems(int nDims, int *nTodo, size_t **WorkTodo);
     void InitGroupWorkItemsGCD(int nDims, int *nTodo, size_t **WorkTodo, cl_device_id *device);
@@ -384,6 +385,18 @@ void BuildProgram(cl_program *program, int ndevices, cl_device_id *devices, cons
         PrintCLError(stderr, err, "GET PROGRAM BUILD LOG");
         free(buildlog);
     }
+}
+
+void BuildProgramOnDevice(cl_program *program, int idevice, cl_device_id *device, const char *opt)
+{
+    int err = clBuildProgram(*program, 1, device, opt, NULL, NULL);
+    size_t length;
+    err = clGetProgramBuildInfo(*program, *device, CL_PROGRAM_BUILD_LOG, 0, NULL, &length);
+    char *buildlog = (char*)malloc(length);
+    err = clGetProgramBuildInfo(*program, *devices, CL_PROGRAM_BUILD_LOG, length, buildlog, NULL);
+    printf("PROGRAM ON DEVICE[%d] BUILD LOG: %s\n", idevice, buildlog);
+    PrintCLError(stderr, err, "GET PROGRAM BUILD LOG");
+    free(buildlog);
 }
 
 void InitGlobalWorkItems(int nDims, int *nTodo, size_t **WorkTodo)
