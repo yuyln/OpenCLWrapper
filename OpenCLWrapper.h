@@ -248,6 +248,13 @@ long unsigned int gcd(long unsigned int a, long unsigned int b)
 
 void InitPlatforms(cl_platform_id **plat, int *n)
 {
+    #ifdef unix || __unix || __unix
+    setenv("CUDA_CACHE_DISABLE", "1", 1);
+    #elif defined(_WIN32) || defined(_WIN64) || defined(__CYGWIN__)
+    _putenv_s("CUDA_CACHE_DISABLE", "1");
+    #elif defined(__APPLE__) || defined(__MACH__)
+    setenv("CUDA_CACHE_DISABLE", "1", 1);
+
     cl_uint n_;
     int err = clGetPlatformIDs(0, NULL, &n_);
     PrintCLError(stderr, err, "GET PLATAFORMS");
