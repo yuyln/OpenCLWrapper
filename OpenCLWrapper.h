@@ -254,6 +254,7 @@ void InitPlatforms(cl_platform_id **plat, int *n)
     _putenv_s("CUDA_CACHE_DISABLE", "1");
     #elif defined(__APPLE__) || defined(__MACH__)
     setenv("CUDA_CACHE_DISABLE", "1", 1);
+    #endif
 
     cl_uint n_;
     int err = clGetPlatformIDs(0, NULL, &n_);
