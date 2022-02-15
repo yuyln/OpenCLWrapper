@@ -218,7 +218,10 @@ void ReadBufferOff(cl_mem *buffer, void *data, size_t datasize, size_t off, cl_c
 void ReadFile(const char *path, char **out)
 {
     FILE *f = fopen(path, "rb");
-    PrintCLError(stderr, errno, strerror(errno));
+    if (f == NULL)
+    {
+        fprintf(stderr, "FILE (%s) IS NULL: %s", path, strerror(errno));
+    }
     fseek(f, 0, SEEK_SET);
     fseek(f, 0, SEEK_END);
     size_t filesize = ftell(f);
