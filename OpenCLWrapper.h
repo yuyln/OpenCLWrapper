@@ -308,13 +308,13 @@ void InitDevice(cl_device_id **devices, cl_platform_id plat, int iplat, int *n)
         err = clGetDeviceInfo((*devices)[i], CL_DEVICE_MAX_WORK_ITEM_SIZES, 0, NULL, &dims);
         PrintCLError(stderr, err, "GET DEVICE MAX DIMS");
         dims = dims / sizeof(size_t);
-        printf("PLATAFORM[%d] DEVICE [%d] MAX DIMS: %llu\n", iplat, i, dims);
+        printf("PLATAFORM[%d] DEVICE [%d] MAX DIMS: %zu\n", iplat, i, dims);
 
 
         size_t maxWork;
         err = clGetDeviceInfo((*devices)[i], CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(size_t), &maxWork, NULL);
         PrintCLError(stderr, err, "GET DEVICE MAX WORK GROUP SIZE");
-        printf("PLATAFORM[%d] DEVICE [%d] MAX WORK GROUP SIZE: %llu\n", iplat, i, maxWork);
+        printf("PLATAFORM[%d] DEVICE [%d] MAX WORK GROUP SIZE: %zu\n", iplat, i, maxWork);
 
 
         size_t *maxWorkPerGroup = (size_t*) malloc(sizeof(size_t) * dims);
@@ -324,9 +324,9 @@ void InitDevice(cl_device_id **devices, cl_platform_id plat, int iplat, int *n)
         printf("PLATAFORM[%d] DEVICE [%d] MAX WORK PER DIM: ( ", iplat, i);
         for (cl_uint i = 0; i < dims - 1; i++)
         {
-            printf("%lld, ", maxWorkPerGroup[i]);
+            printf("%zu, ", maxWorkPerGroup[i]);
         }
-        printf("%lld )\n", maxWorkPerGroup[dims - 1]);
+        printf("%zu )\n", maxWorkPerGroup[dims - 1]);
     }
     if (n != NULL)
     {
@@ -464,7 +464,7 @@ void SetKernelArg(Kernel *kernel, void *data, size_t datasize, cl_uint i)
 void SetKernelArgk(cl_kernel *kernel, void *data, size_t datasize, cl_uint i)
 {
     int err = clSetKernelArg(*kernel, i, datasize, data);
-    PrintCLError(stderr, err, "ERROR SETTING ARG %d OF SIZE %llu", i, datasize);
+    PrintCLError(stderr, err, "ERROR SETTING ARG %d OF SIZE %zu", i, datasize);
 }
 
 #endif // HEADER_IMPL
