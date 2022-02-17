@@ -196,25 +196,25 @@ void CreateBuffer(cl_mem *ret, void *data, size_t datasize, cl_context context, 
 void WriteBuffer(cl_mem *buffer, void *data, size_t datasize, cl_command_queue queue)
 {
     int err = clEnqueueWriteBuffer(queue, *buffer, CL_TRUE, 0, datasize, data, 0, NULL, NULL);
-    PrintCLError(stderr, err, "WRITING BUFFER");
+    PrintCLError(stderr, err, "WRITING BUFFER WITH DATASIZE: %zu", datasize);
 }
 
 void WriteBufferOff(cl_mem *buffer, void *data, size_t datasize, size_t off, cl_command_queue queue)
 {
     int err = clEnqueueWriteBuffer(queue, *buffer, CL_TRUE, off, datasize, data, 0, NULL, NULL);
-    PrintCLError(stderr, err, "WRITING BUFFER");
+    PrintCLError(stderr, err, "WRITING BUFFER OFFSET WITH DATASIZE: %zu", datasize);
 }
 
 void ReadBuffer(cl_mem *buffer, void *data, size_t datasize, cl_command_queue queue)
 {
     int err = clEnqueueReadBuffer(queue, *buffer, CL_TRUE, 0, datasize, data, 0, NULL, NULL);
-    PrintCLError(stderr, err, "READING BUFFER");
+    PrintCLError(stderr, err, "READING BUFFER WITH DATASIZE: %zu", datasize);
 }
 
 void ReadBufferOff(cl_mem *buffer, void *data, size_t datasize, size_t off, cl_command_queue queue)
 {
     int err = clEnqueueReadBuffer(queue, *buffer, CL_TRUE, off, datasize, data, 0, NULL, NULL);
-    PrintCLError(stderr, err, "READING BUFFER");
+    PrintCLError(stderr, err, "READING BUFFER OFFSET WITH DATASIZE: %zu", datasize);
 }
 
 void ReadFile(const char *path, char **out)
