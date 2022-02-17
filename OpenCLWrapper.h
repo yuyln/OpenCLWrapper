@@ -190,7 +190,7 @@ void CreateBuffer(cl_mem *ret, void *data, size_t datasize, cl_context context, 
 {
     int err;
     *ret = clCreateBuffer(context, flags, datasize, data, &err);
-    PrintCLError(stderr, err, "CREATING BUFFER");
+    PrintCLError(stderr, err, "CREATING BUFFER WITH DATASIZE: %zu", datasize);
 }
 
 void WriteBuffer(cl_mem *buffer, void *data, size_t datasize, cl_command_queue queue)
