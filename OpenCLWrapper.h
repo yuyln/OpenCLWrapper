@@ -126,9 +126,13 @@ extern "C"
     void BuildProgram(cl_program *program, int ndevices, cl_device_id *devices, const char *opt);
     void BuildProgramOnDevice(cl_program *program, int idevice, cl_device_id *device, const char *opt);
 
-    void InitGlobalWorkItems(int nDims, int *nTodo, size_t **WorkTodo);
-    void InitGroupWorkItemsGCD(int nDims, int *nTodo, size_t **WorkTodo, cl_device_id *device);
-    void InitGroupWorkItemsYGCD(int nDims, int *nTodo, size_t **WorkTodo, int YGCD);
+    void InitGlobalWorkItems1D(int nTodo, size_t *WorkTodo);
+    void InitGroupWorkItemsGCD1D(int nTodo, size_t *WorkTodo, cl_device_id *device);
+    void InitGroupWorkItemsYGCD1D(int nTodo, size_t *WorkTodo, int YGCD);
+
+    void InitGlobalWorkItemsND(int nDims, int *nTodo, size_t **WorkTodo);
+    void InitGroupWorkItemsGCDND(int nDims, int *nTodo, size_t **WorkTodo, cl_device_id *device);
+    void InitGroupWorkItemsYGCDND(int nDims, int *nTodo, size_t **WorkTodo, int YGCD);
 
     void EnqueueND(cl_command_queue *queue, Kernel *kernel, cl_uint ndim, size_t *offset, 
                    size_t *globalWork, size_t *localWork);
@@ -143,7 +147,7 @@ extern "C"
 }
 #endif //__cplusplus
 
-#ifdef HEADER_IMPL
+#ifdef OPENCLWRAPPER_IMPLEMTATION
 
 void InitKernelStruct(Kernel *K, cl_kernel *k, const char *name)
 {
@@ -434,7 +438,23 @@ void BuildProgramOnDevice(cl_program *program, int idevice, cl_device_id *device
     free(buildlog);
 }
 
-void InitGlobalWorkItems(int nDims, int *nTodo, size_t **WorkTodo)
+void InitGlobalWorkItems1D(int nTodo, size_t *WorkTodo)
+{
+    *WorkTodo = nTodo;
+}
+
+void InitGroupWorkItemsGCD1D(int nTodo, size_t *WorkTodo, cl_device_id *device)
+{
+    size_t maxW = GetMaxWorkFromDevice(device) / 2;
+    *WorkTodo = gcd(maxW, nTodo);
+}
+
+void InitGroupWorkItemsYGCD1D(int nTodo, size_t *WorkTodo, int YGCD)
+{
+    *WorkTodo = gcd(YGCD, nTodo);
+}
+
+void InitGlobalWorkItemsND(int nDims, int *nTodo, size_t **WorkTodo)
 {
     *WorkTodo = (size_t*)malloc(sizeof(size_t) * nDims);
     for (int i = 0; i < nDims; i++)
@@ -443,7 +463,7 @@ void InitGlobalWorkItems(int nDims, int *nTodo, size_t **WorkTodo)
     }
 }
 
-void InitGroupWorkItemsGCD(int nDims, int *nTodo, size_t **WorkTodo, cl_device_id *device)
+void InitGroupWorkItemsGCDND(int nDims, int *nTodo, size_t **WorkTodo, cl_device_id *device)
 {
     *WorkTodo = (size_t*)malloc(sizeof(size_t) * nDims);
     size_t maxW = GetMaxWorkFromDevice(device) / 2;
@@ -453,7 +473,7 @@ void InitGroupWorkItemsGCD(int nDims, int *nTodo, size_t **WorkTodo, cl_device_i
     }
 }
 
-void InitGroupWorkItemsYGCD(int nDims, int *nTodo, size_t **WorkTodo, int YGCD)
+void InitGroupWorkItemsYGCDND(int nDims, int *nTodo, size_t **WorkTodo, int YGCD)
 {
     *WorkTodo = (size_t*)malloc(sizeof(size_t) * nDims);
     for (int i = 0; i < nDims; i++)
