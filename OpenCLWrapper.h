@@ -334,10 +334,10 @@ void InitDevice(cl_device_id **devices, cl_platform_id plat, int iplat, int *n)
         printf("%zu )\n", maxWorkPerGroup[dims - 1]);
 
         size_t maxMemAlloc = GetMaxAllocMemoryBytesDevice(&(*devices)[i]);
-        printf("PLATAFORM[%d] DEVICE [%d] MAX ALLOC MEMORY: %zu\n", iplat, i, maxMemAlloc;
+        printf("PLATAFORM[%d] DEVICE [%d] MAX ALLOC MEMORY: %.3f  kB\n", iplat, i, (double)maxMemAlloc / 1000.0);
 
         size_t maxMemGlob = GetMaxMemoryBytesDevice(&(*devices)[i]);
-        printf("PLATAFORM[%d] DEVICE [%d] MAX Glob MEMORY: %zu\n", iplat, i, maxMemGlob;
+        printf("PLATAFORM[%d] DEVICE [%d] MAX GLOB MEMORY: %.3f  kB\n", iplat, i, (double)maxMemGlob / 1000.0);
     }
     if (n != NULL)
     {
@@ -356,7 +356,7 @@ size_t GetMaxWorkFromDevice(cl_device_id *device)
 size_t GetMaxAllocMemoryBytesDevice(cl_device_id *device)
 {
     size_t maxMem;
-    int err = clGetDeviceInfo(*device, CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof(size_t), &maxWork, NULL);
+    int err = clGetDeviceInfo(*device, CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof(size_t), &maxMem, NULL);
     PrintCLError(stderr, err, "GET DEVICE MAX ALLOC MEM SIZE");
     return maxMem;
 }
@@ -364,7 +364,7 @@ size_t GetMaxAllocMemoryBytesDevice(cl_device_id *device)
 size_t GetMaxMemoryBytesDevice(cl_device_id *device)
 {
     size_t maxMem;
-    int err = clGetDeviceInfo(*device, CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(size_t), &maxWork, NULL);
+    int err = clGetDeviceInfo(*device, CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(size_t), &maxMem, NULL);
     PrintCLError(stderr, err, "GET DEVICE MAX GLOBAL MEM SIZE");
     return maxMem;
 }
