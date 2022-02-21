@@ -21,11 +21,6 @@
                                             }                                                                                                    \
                                           }
 
-
-#ifdef __cplusplus
-extern "C"
-{
-#endif
     //TODO: can be better?
     typedef struct
     {
@@ -143,9 +138,6 @@ extern "C"
 
     void SetKernelArg(Kernel *kernel, void *data, size_t datasize, cl_uint i);
     void SetKernelArgk(cl_kernel *kernel, void *data, size_t datasize, cl_uint i);
-#ifdef __cplusplus
-}
-#endif //__cplusplus
 
 #ifdef OPENCLWRAPPER_IMPLEMTATION
 
