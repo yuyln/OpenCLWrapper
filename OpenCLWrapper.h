@@ -4,37 +4,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
 #include <errno.h>
 
-#define PrintCLError(file, err, message, ...) {                                                                                             \
-                                            if (err != 0)                                                                                        \
-                                            {                                                                                                    \
-                                                fprintf(file, "%s: %d OPENCLWRAPPER ERROR %d: ", __FILE__, __LINE__, err);\
-                                                int err_ = abs(err);\
-                                                if (err_ >= 30)\
-                                                    err_ = err_ - 10;\
-                                                fprintf(file, "%s | ", errors[err_]);\
-                                                fprintf(file, message, ##__VA_ARGS__);                                                                  \
-                                                fprintf(file, "\n");                                                                             \
-                                                exit(err);                                                                                       \
-                                            }                                                                                                    \
-                                          }
+/*
+    #if defined(unix) || defined(__unix) || defined(__unix)
+    setenv("CUDA_CACHE_DISABLE", "1", 1);
+    #elif defined(_WIN32) || defined(_WIN64) || defined(__CYGWIN__)
+    _putenv_s("CUDA_CACHE_DISABLE", "1");
+    #elif defined(__APPLE__) || defined(__MACH__)
+    setenv("CUDA_CACHE_DISABLE", "1", 1);
+    #endif
+*/
 
-    //TODO: can be better?
-    typedef struct
-    {
-        cl_kernel *kernel;
-        const char *name;
-    } Kernel;
-
-    void InitKernelStruct(Kernel *K, cl_kernel *k, const char *name);
-    void InitKernelsStruct(Kernel **K, cl_kernel *k, const char **name, int n);
-
-    void InitKernelStructGround(Kernel *K, cl_kernel *k, cl_program *program, const char *name);
-    void InitKernelsStructGround(Kernel **K, cl_kernel **k, cl_program *program, const char **name, int n);
-
-    static const char *errors[60] = {
+static const char *errors[60] = {
                                 "CL_SUCCESS",
                                 "CL_DEVICE_NOT_FOUND",
                                 "CL_DEVICE_NOT_AVAILABLE",
@@ -42,12 +24,12 @@
                                 "CL_MEM_OBJECT_ALLOCATION_FAILURE",
                                 "CL_OUT_OF_RESOURCES",
                                 "CL_OUT_OF_HOST_MEMORY",
-                                "CL_PROFILING_INFO_NOT_AVAILABLE ",
+                                "CL_PROFILING_INFO_NOT_AVAILABLE",
                                 "CL_MEM_COPY_OVERLAP",
                                 "CL_IMAGE_FORMAT_MISMATCH",
-                                "CL_IMAGE_FORMAT_NOT_SUPPORTED ",
-                                "CL_BUILD_PROGRAM_FAILURE ",
-                                "CL_MAP_FAILURE   ",
+                                "CL_IMAGE_FORMAT_NOT_SUPPORTED",
+                                "CL_BUILD_PROGRAM_FAILURE",
+                                "CL_MAP_FAILURE",
                                 "CL_MISALIGNED_SUB_BUFFER_OFFSET",
                                 "CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST",
                                 "CL_COMPILE_PROGRAM_FAILURE",
@@ -96,82 +78,65 @@
                                 "CL_INVALID_DEVICE_PARTITION_COUNT",
                             };
 
-    void PrintCLError_(FILE *f, int err, const char *m, int line, const char *file);
+#define PrintCLError(file, err, message, ...) {                                                                                             \
+                                            if (err != 0)                                                                                        \
+                                            {                                                                                                    \
+                                                fprintf(file, "%s: %d OPENCLWRAPPER ERROR %d: ", __FILE__, __LINE__, err);\
+                                                int err_ = abs(err);\
+                                                if (err_ >= 30)\
+                                                    err_ = err_ - 10;\
+                                                fprintf(file, "%s | ", errors[err_]);\
+                                                fprintf(file, message, ##__VA_ARGS__);                                                                  \
+                                                fprintf(file, "\n");                                                                             \
+                                                exit(err);                                                                                       \
+                                            }                                                                                                    \
+                                          }
 
-    void CreateBuffer(cl_mem *ref, void *data, size_t datasize, cl_context context, cl_mem_flags flags);
-    void WriteBuffer(cl_mem *buffer, void *data, size_t datasize, cl_command_queue queue);
-    void WriteBufferOff(cl_mem *buffer, void *data, size_t datasize, size_t off, cl_command_queue queue);
-    void ReadBuffer(cl_mem *buffer, void *data, size_t datasize, cl_command_queue queue);
-    void ReadBufferOff(cl_mem *buffer, void *data, size_t datasize, size_t off, cl_command_queue queue);
+    typedef struct
+    {
+        cl_kernel kernel;
+        const char *name;
+    } Kernel;
 
+    //utils
     void ReadFile(const char *path, char **out);
+    size_t gcd(size_t a, size_t b);
+    // long unsigned int gcd(long unsigned int a, long unsigned int b);
 
-    long unsigned int gcd(long unsigned int a, long unsigned int b);
+    //buffer related
+    cl_mem CreateBuffer(size_t size, cl_context context, cl_mem_flags flags);
+    void ReadBuffer(cl_mem buffer, void *host_ptr, size_t size, size_t offset, cl_command_queue q);
+    void WriteBuffer(cl_mem buffer, void *host_ptr, size_t size, size_t offset, cl_command_queue q);
 
-    void InitPlatforms(cl_platform_id **plat, int *n);
-    void InitDevice(cl_device_id **devices, cl_platform_id plat, int iplat, int *n);
-    size_t GetMaxWorkFromDevice(cl_device_id *device);
-    size_t GetMaxAllocMemoryBytesDevice(cl_device_id *device);
-    size_t GetMaxMemoryBytesDevice(cl_device_id *device);
-    void InitContext(cl_context *context, cl_device_id *device);
-    void InitQueue(cl_command_queue *queue, cl_context *context, cl_device_id *device);
-    void InitKernels(cl_kernel **kernels, cl_program *program, const char **names, int n);
-    void InitKernel(cl_kernel *kernel, cl_program *program, const char *name);
-    void InitProgram(cl_program *program, cl_context *context, int n, const char **names);
-    void BuildProgram(cl_program *program, int ndevices, cl_device_id *devices, const char *opt);
-    void BuildProgramOnDevice(cl_program *program, int idevice, cl_device_id *device, const char *opt);
+    //init related
+    cl_platform_id* InitPlatforms(size_t *n);
+    cl_device_id* InitDevices(cl_platform_id plat, size_t *n);
+    cl_context InitContext(cl_device_id *devices, size_t ndev);
+    cl_command_queue InitQueue(cl_context ctx, cl_device_id device);
+    cl_program InitProgramSource(cl_context ctx, const char *source);
+    cl_int BuildProgram(cl_program program, size_t ndev, cl_device_id *devs, const char *compile_opt);
+    Kernel InitKernel(cl_program program, const char *name);
+    Kernel *InitKernels(cl_program program, const char **names, size_t n);
 
-    void InitGlobalWorkItems1D(int nTodo, size_t *WorkTodo);
-    void InitGroupWorkItemsGCD1D(int nTodo, size_t *WorkTodo, cl_device_id *device);
-    void InitGroupWorkItemsYGCD1D(int nTodo, size_t *WorkTodo, int YGCD);
+    //info related
+    void PlatformInfo(FILE *file, cl_platform_id plat, size_t iplat);
+    void DeviceInfo(FILE *file, cl_device_id dev, size_t idev);
+    void BuildProgramInfo(FILE *f, cl_program program, cl_device_id dev, cl_int errCode); //errCode from BuildProgram returned call
 
-    void InitGlobalWorkItemsND(int nDims, int *nTodo, size_t **WorkTodo);
-    void InitGroupWorkItemsGCDND(int nDims, int *nTodo, size_t **WorkTodo, cl_device_id *device);
-    void InitGroupWorkItemsYGCDND(int nDims, int *nTodo, size_t **WorkTodo, int YGCD);
+    //queue related
+    void EnqueueND(cl_command_queue queue, Kernel k, size_t dim, size_t *global_offset, size_t *global, size_t *local);
+    void Finish(cl_command_queue queue);
 
-    void EnqueueND(cl_command_queue *queue, Kernel *kernel, cl_uint ndim, size_t *offset, 
-                   size_t *globalWork, size_t *localWork);
-    void EnqueueNDk(cl_command_queue *queue, cl_kernel *kernel, cl_uint ndim, size_t *offset, 
-                   size_t *globalWork, size_t *localWork);
+    //work related
+    size_t LocalWorkDeviceGDC_1D(size_t global, cl_device_id dev);
+    size_t LocalWorkGDC_1D(size_t global, size_t fac);
+    size_t *LocalWorkDeviceGDC_ND(size_t ndim, size_t *global, cl_device_id dev);
+    size_t *LocalWorkGDC_ND(size_t ndim, size_t *global, size_t fac);
 
-    void Finish(cl_command_queue *q);
+    //kernel arg related
+    void SetKernelArg(Kernel k, size_t argIndex, size_t argSize, void *arg);
 
-    void SetKernelArg(Kernel *kernel, void *data, size_t datasize, cl_uint i);
-    void SetKernelArgk(cl_kernel *kernel, void *data, size_t datasize, cl_uint i);
-
-#ifdef OPENCLWRAPPER_IMPLEMTATION
-
-void InitKernelStruct(Kernel *K, cl_kernel *k, const char *name)
-{
-    K->kernel = k;
-    K->name = name;
-}
-
-void InitKernelsStruct(Kernel **K, cl_kernel *k, const char **name, int n)
-{
-    *K = (Kernel*) malloc(sizeof(Kernel) * n);
-    for (int i = 0; i < n; i++)
-    {
-        InitKernelStruct(&(*K)[i], &k[i], name[i]);
-    }
-}
-
-void InitKernelStructGround(Kernel *K, cl_kernel *k, cl_program *program, const char *name)
-{
-    InitKernel(k, program, name);
-    K->kernel = k;
-    K->name = name;
-}
-
-void InitKernelsStructGround(Kernel **K, cl_kernel **k, cl_program *program, const char **name, int n)
-{
-    InitKernels(k, program, name, n);
-    *K = (Kernel*) malloc(sizeof(Kernel) * n);
-    for (int i = 0; i < n; i++)
-    {
-        InitKernelStruct(&(*K)[i], &(*k)[i], name[i]);
-    }
-}
+#ifdef OPENCLWRAPPER_IMPLEMENTATION
 
 void PrintCLError_(FILE *f, int err, const char *m, int line, const char *file)
 {
@@ -180,37 +145,6 @@ void PrintCLError_(FILE *f, int err, const char *m, int line, const char *file)
         fprintf(f, "%s:%d OPENCLWRAPPER ERROR %s:%d\n", file, line, m, err);
         exit(err);
     }
-}
-
-void CreateBuffer(cl_mem *ret, void *data, size_t datasize, cl_context context, cl_mem_flags flags)
-{
-    int err;
-    *ret = clCreateBuffer(context, flags, datasize, data, &err);
-    PrintCLError(stderr, err, "CREATING BUFFER WITH DATASIZE: %zu", datasize);
-}
-
-void WriteBuffer(cl_mem *buffer, void *data, size_t datasize, cl_command_queue queue)
-{
-    int err = clEnqueueWriteBuffer(queue, *buffer, CL_TRUE, 0, datasize, data, 0, NULL, NULL);
-    PrintCLError(stderr, err, "WRITING BUFFER WITH DATASIZE: %zu", datasize);
-}
-
-void WriteBufferOff(cl_mem *buffer, void *data, size_t datasize, size_t off, cl_command_queue queue)
-{
-    int err = clEnqueueWriteBuffer(queue, *buffer, CL_TRUE, off, datasize, data, 0, NULL, NULL);
-    PrintCLError(stderr, err, "WRITING BUFFER OFFSET WITH DATASIZE: %zu", datasize);
-}
-
-void ReadBuffer(cl_mem *buffer, void *data, size_t datasize, cl_command_queue queue)
-{
-    int err = clEnqueueReadBuffer(queue, *buffer, CL_TRUE, 0, datasize, data, 0, NULL, NULL);
-    PrintCLError(stderr, err, "READING BUFFER WITH DATASIZE: %zu", datasize);
-}
-
-void ReadBufferOff(cl_mem *buffer, void *data, size_t datasize, size_t off, cl_command_queue queue)
-{
-    int err = clEnqueueReadBuffer(queue, *buffer, CL_TRUE, off, datasize, data, 0, NULL, NULL);
-    PrintCLError(stderr, err, "READING BUFFER OFFSET WITH DATASIZE: %zu", datasize);
 }
 
 void ReadFile(const char *path, char **out)
@@ -235,7 +169,7 @@ void ReadFile(const char *path, char **out)
     fclose(f);
 }
 
-long unsigned int gcd(long unsigned int a, long unsigned int b)
+size_t gcd(size_t a, size_t b)
 {
     if (b == 0)
     {
@@ -247,8 +181,29 @@ long unsigned int gcd(long unsigned int a, long unsigned int b)
     }
 }
 
-void InitPlatforms(cl_platform_id **plat, int *n)
+cl_mem CreateBuffer(size_t size, cl_context context, cl_mem_flags flags)
 {
+    cl_int err;
+    cl_mem ret = clCreateBuffer(context, flags, size, NULL, &err);
+    PrintCLError(stderr, err, "ERROR ON CREATING BUFFER WITH SIZE %zu", size);
+    return ret;
+}
+
+void ReadBuffer(cl_mem buffer, void *host_ptr, size_t size, size_t offset, cl_command_queue q)
+{
+    cl_int err = clEnqueueReadBuffer(q, buffer, CL_TRUE, offset, size, host_ptr, 0, NULL, NULL);
+    PrintCLError(stderr, err, "ERROR ON READING BUFFER WITH SIZE %zu AND OFFSET %zu", size, offset);
+}
+
+void WriteBuffer(cl_mem buffer, void *host_ptr, size_t size, size_t offset, cl_command_queue q)
+{
+    cl_int err = clEnqueueWriteBuffer(q, buffer, CL_TRUE, offset, size, host_ptr, 0, NULL, NULL);
+    PrintCLError(stderr, err, "ERROR ON WRITING BUFFER WITH SIZE %zu AND OFFSET %zu", size, offset);
+}
+
+cl_platform_id* InitPlatforms(size_t *n)
+{
+    //disable cache
     #if defined(unix) || defined(__unix) || defined(__unix)
     setenv("CUDA_CACHE_DISABLE", "1", 1);
     #elif defined(_WIN32) || defined(_WIN64) || defined(__CYGWIN__)
@@ -257,253 +212,239 @@ void InitPlatforms(cl_platform_id **plat, int *n)
     setenv("CUDA_CACHE_DISABLE", "1", 1);
     #endif
 
-    cl_uint n_;
-    int err = clGetPlatformIDs(0, NULL, &n_);
-    PrintCLError(stderr, err, "GET PLATAFORMS");
-    *plat = (cl_platform_id *)malloc(sizeof(cl_platform_id) * n_);
+    cl_uint nn;
+    cl_int err = clGetPlatformIDs(0, NULL, &nn);
+    PrintCLError(stderr, err, "ERROR FINDING NUMBER OF PLATFORMS");
+    *n = nn;
 
-    err = clGetPlatformIDs(n_, *plat, NULL);
+    cl_platform_id *local = (cl_platform_id*)malloc(sizeof(cl_platform_id) * nn);
+    err = clGetPlatformIDs(nn, local, NULL);
+    PrintCLError(stderr, err, "ERROR INIT PLATFORM");
+    return local;
+}
 
-    for (cl_uint i = 0; i < n_; i++)
+cl_device_id* InitDevices(cl_platform_id plat, size_t *n)
+{
+    cl_uint nn;
+    cl_int err = clGetDeviceIDs(plat, CL_DEVICE_TYPE_ALL, 0, NULL, &nn);
+    PrintCLError(stderr, err, "ERROR FINDING NUMBER OF DEVICES");
+    *n = nn;
+
+    cl_device_id *local = (cl_device_id*)malloc(sizeof(cl_device_id) * nn);
+    err = clGetDeviceIDs(plat, CL_DEVICE_TYPE_ALL, nn, local, NULL);
+    PrintCLError(stderr, err, "ERROR INIT PLATFORM");
+    return local;
+}
+
+cl_context InitContext(cl_device_id *devices, size_t ndev)
+{
+    cl_int err;
+    cl_context ret = clCreateContext(NULL, ndev, devices, NULL, NULL, &err);
+    PrintCLError(stderr, err, "ERROR CREATING CONTEXT");
+    return ret;    
+}
+
+cl_command_queue InitQueue(cl_context ctx, cl_device_id device)
+{
+    cl_int err;
+    cl_command_queue ret = clCreateCommandQueue(ctx, device, 0, &err);
+    PrintCLError(stderr, err, "ERROR CREATING QUEUE");
+    return ret;
+}
+
+cl_program InitProgramSource(cl_context ctx, const char *source)
+{
+    cl_int err;
+    cl_program ret = clCreateProgramWithSource(ctx, 1, &source, NULL, &err);
+    PrintCLError(stderr, err, "ERROR CREATING PROGRAM WITH SOURCE");
+    return ret;
+}
+
+cl_int BuildProgram(cl_program program, size_t ndev, cl_device_id *devs, const char *compile_opt)
+{
+    return clBuildProgram(program, ndev, devs, compile_opt, NULL, NULL);
+}
+
+Kernel InitKernel(cl_program program, const char *name)
+{
+    cl_int err;
+    Kernel ret;
+    ret.kernel = clCreateKernel(program, name, &err);
+    ret.name = name;
+    PrintCLError(stderr, err, "ERROR CREATING KERNEL %s", name);
+    return ret;
+}
+
+Kernel *InitKernels(cl_program program, const char **names, size_t n)
+{
+    Kernel *ret = (Kernel*)malloc(sizeof(Kernel) * n);
+    for (size_t i = 0; i < n; ++i)
     {
-        size_t size;
-        char *platinfo;
-        err = clGetPlatformInfo((*plat)[i], CL_PLATFORM_NAME, 0, NULL, &size);
-        PrintCLError(stderr, err, "GET PLATFORM INFO SIZE");
-        platinfo = (char*)malloc(size);
-        err = clGetPlatformInfo((*plat)[i], CL_PLATFORM_NAME, size, platinfo, NULL);
-        PrintCLError(stderr, err, "GET PLATFORM INFO");
-        printf("PLATAFORM[%d] NAME: %s\n", i, platinfo);
-        free(platinfo);
+        ret[i] = InitKernel(program, names[i]);
     }
+    return ret;
+}
 
-    if (n != NULL)
+void EnqueueND(cl_command_queue queue, Kernel k, size_t dim, size_t *global_offset, size_t *global, size_t *local)
+{
+    cl_int err = clEnqueueNDRangeKernel(queue, k.kernel, dim, global_offset, global, local, 0, NULL, NULL);
+    PrintCLError(stderr, err, "ERROR ENQUEUING KERNEL %s", k.name);
+}
+
+void Finish(cl_command_queue queue)
+{
+    cl_int err = clFinish(queue);
+    PrintCLError(stderr, err, "ERROR FINISHING QUEUE");
+}
+
+size_t LocalWorkDeviceGDC_1D(size_t global, cl_device_id dev)
+{
+    size_t devG;
+    cl_int err = clGetDeviceInfo(dev, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(size_t), &devG, NULL);
+    PrintCLError(stderr, err, "ERROR GETTING DEVICE GCD");
+    return gcd(global, devG);
+}
+
+size_t LocalWorkGDC_1D(size_t global, size_t fac)
+{
+    return gcd(global, fac);
+}
+
+size_t *LocalWorkDeviceGDC_ND(size_t ndim, size_t *global, cl_device_id dev)
+{
+    size_t *ret = (size_t*)malloc(sizeof(size_t) * ndim);
+    for (size_t i = 0; i < ndim; ++i)
     {
-        *n = n_;
+        ret[i] = LocalWorkDeviceGDC_1D(global[i], dev);
     }
+    return ret;
 }
 
-void InitDevice(cl_device_id **devices, cl_platform_id plat, int iplat, int *n)
+size_t *LocalWorkGDC_ND(size_t ndim, size_t *global, size_t fac)
 {
-    cl_uint n_;
-    int err = clGetDeviceIDs(plat, CL_DEVICE_TYPE_ALL, 0, NULL, &n_);
-    PrintCLError(stderr, err, "GET NUMBER OF DEVICES");
-    *devices = (cl_device_id*)malloc(sizeof(cl_device_id) * n_);
-    err = clGetDeviceIDs(plat, CL_DEVICE_TYPE_ALL, n_, *devices, NULL);
-    PrintCLError(stderr, err, "GET DEVICES IDS");
-
-    for (cl_uint i = 0; i < n_; i++)
+    size_t *ret = (size_t*)malloc(sizeof(size_t) * ndim);
+    for (size_t i = 0; i < ndim; ++i)
     {
-        size_t size;
-        char *deviceinfo;
-        err = clGetDeviceInfo((*devices)[i], CL_DEVICE_NAME, 0, NULL, &size);
-        PrintCLError(stderr, err, "GET DEVICE INFO SIZE");
-        deviceinfo = (char*)malloc(size);
-        err = clGetDeviceInfo((*devices)[i], CL_DEVICE_NAME, size, deviceinfo, NULL);
-        PrintCLError(stderr, err, "GET DEVICE INFO");
-        printf("PLATAFORM[%d] DEVICE [%d] NAME: %s\n", iplat, i, deviceinfo);
-        free(deviceinfo);
-
-
-        size_t dims;
-        err = clGetDeviceInfo((*devices)[i], CL_DEVICE_MAX_WORK_ITEM_SIZES, 0, NULL, &dims);
-        PrintCLError(stderr, err, "GET DEVICE MAX DIMS");
-        dims = dims / sizeof(size_t);
-        printf("PLATAFORM[%d] DEVICE [%d] MAX DIMS: %zu\n", iplat, i, dims);
-
-
-        size_t maxWork = GetMaxWorkFromDevice(&(*devices)[i]);
-        // err = clGetDeviceInfo((*devices)[i], CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(size_t), &maxWork, NULL);
-        // PrintCLError(stderr, err, "GET DEVICE MAX WORK GROUP SIZE");
-        printf("PLATAFORM[%d] DEVICE [%d] MAX WORK GROUP SIZE: %zu\n", iplat, i, maxWork);
-
-
-        size_t *maxWorkPerGroup = (size_t*) malloc(sizeof(size_t) * dims);
-        err = clGetDeviceInfo((*devices)[i], CL_DEVICE_MAX_WORK_ITEM_SIZES, sizeof(size_t) * dims, maxWorkPerGroup, NULL);
-
-        PrintCLError(stderr, err, "GET DEVICE MAX WORK DIMS");
-        printf("PLATAFORM[%d] DEVICE [%d] MAX WORK PER DIM: ( ", iplat, i);
-        for (cl_uint i = 0; i < dims - 1; i++)
-        {
-            printf("%zu, ", maxWorkPerGroup[i]);
-        }
-        printf("%zu )\n", maxWorkPerGroup[dims - 1]);
-
-        size_t maxMemAlloc = GetMaxAllocMemoryBytesDevice(&(*devices)[i]);
-        printf("PLATAFORM[%d] DEVICE [%d] MAX ALLOC MEMORY: %.3f  kB\n", iplat, i, (double)maxMemAlloc / 1000.0);
-
-        size_t maxMemGlob = GetMaxMemoryBytesDevice(&(*devices)[i]);
-        printf("PLATAFORM[%d] DEVICE [%d] MAX GLOB MEMORY: %.3f  kB\n", iplat, i, (double)maxMemGlob / 1000.0);
+        ret[i] = LocalWorkGDC_1D(global[i], fac);
     }
-    if (n != NULL)
+    return ret;
+}
+
+void SetKernelArg(Kernel k, size_t argIndex, size_t argSize, void *arg)
+{
+    cl_int err = clSetKernelArg(k.kernel, argIndex, argSize, arg);
+    PrintCLError(stderr, err, "ERROR SETTING ARG %zu ON KERNEL %s", argIndex, k.name);
+}
+
+void PlatformInfo(FILE *file, cl_platform_id plat, size_t iplat)
+{
+    size_t n;
+    cl_int err = clGetPlatformInfo(plat, CL_PLATFORM_NAME, 0, NULL, &n);
+    PrintCLError(stderr, err, "ERROR GETTING SIZE PLATFORM[%zu] NAME INFO", iplat);
+
+    char *info = (char*)malloc(n);
+    err = clGetPlatformInfo(plat, CL_PLATFORM_NAME, n, info, NULL);
+    PrintCLError(stderr, err, "ERROR GETTING PLATFORM[%zu] NAME INFO", iplat);
+    fprintf(file, "---------------------------------\n");
+    fprintf(file, "PLATFORM[%zu] NAME: %s\n", iplat, info);
+    fprintf(file, "---------------------------------\n");
+    free(info);
+}
+
+void DeviceInfo(FILE *file, cl_device_id dev, size_t idev)
+{
+    fprintf(file, "---------------------------------\n");
+
+
+    size_t n;
+    cl_platform_id plt;
+
+    cl_int err = clGetDeviceInfo(dev, CL_DEVICE_PLATFORM, sizeof(cl_platform_id), &plt, NULL);
+    PrintCLError(stderr, err, "ERROR GETTING PLATFORM FROM DEVICE[%zu]", idev);
+
+    err = clGetPlatformInfo(plt, CL_PLATFORM_NAME, 0, NULL, &n);
+    PrintCLError(stderr, err, "ERROR GETTING PLATFORM SIZE FROM DEVICE[%zu]", idev);
+
+    char *info = (char*)malloc(n);
+    err = clGetPlatformInfo(plt, CL_PLATFORM_NAME, n, info, NULL);
+    PrintCLError(stderr, err, "ERROR GETTING PLATFORM NAME FROM DEVICE[%zu]", idev);
+
+    fprintf(file, "DEVICE[%zu] ON PLATFORM %s\n", idev, info);
+
+
+    err = clGetDeviceInfo(dev, CL_DEVICE_NAME, 0, NULL, &n);
+    PrintCLError(stderr, err, "ERROR GETTING SIZE DEVICE[%zu] NAME INFO", idev);
+
+    free(info);
+    info = (char*)malloc(n);
+    err = clGetDeviceInfo(dev, CL_DEVICE_NAME, n, info, NULL);
+    PrintCLError(stderr, err, "ERROR GETTING DEVICE[%zu] NAME INFO", idev);
+    
+
+
+    fprintf(file, "DEVICE[%zu] NAME: %s\n", idev, info);
+    free(info);
+
+    cl_ulong memsize;
+    err = clGetDeviceInfo(dev, CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(cl_ulong), &memsize, NULL);
+    PrintCLError(stderr, err, "ERROR GETTING DEVICE[%zu] MEM INFO", idev);
+    fprintf(file, "DEVICE[%zu] GLOBAL MEM: %.4f MB\n", idev, memsize / (1e6));
+
+
+    cl_ulong memalloc;
+    err = clGetDeviceInfo(dev, CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof(cl_ulong), &memalloc, NULL);
+    PrintCLError(stderr, err, "ERROR GETTING DEVICE[%zu] MEM INFO", idev);
+    fprintf(file, "DEVICE[%zu] ALLOCATABLE MEM: %.4f MB\n", idev, memalloc / (1e6));
+
+    cl_uint maxcomp;
+    err = clGetDeviceInfo(dev, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(cl_uint), &maxcomp, NULL);
+    PrintCLError(stderr, err, "ERROR GETTING DEVICE[%zu] COMPUTE UNITS INFO", idev);
+    fprintf(file, "DEVICE[%zu] COMPUTE UNITS: %u\n", idev, maxcomp);
+
+    size_t maxworgroup;
+    err = clGetDeviceInfo(dev, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(size_t), &maxworgroup, NULL);
+    PrintCLError(stderr, err, "ERROR GETTING DEVICE[%zu] WORK GROUP INFO", idev);
+    fprintf(file, "DEVICE[%zu] MAX WORK GROUP SIZE: %zu\n", idev, maxworgroup);
+
+    cl_uint dimension;
+    err = clGetDeviceInfo(dev, CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS, sizeof(cl_uint), &dimension, NULL);
+    PrintCLError(stderr, err, "ERROR GETTING DEVICE[%zu] WORK GROUP INFO", idev);
+    fprintf(file, "DEVICE[%zu] MAX DIMENSIONS: %u\n", idev, dimension);
+
+    size_t *dim_size = (size_t*)malloc(sizeof(size_t) * dimension);
+    err = clGetDeviceInfo(dev, CL_DEVICE_MAX_WORK_ITEM_SIZES, sizeof(size_t) * dimension, dim_size, NULL);
+    PrintCLError(stderr, err, "ERROR GETTING DEVICE[%zu] WORK GROUP PER DIMENSION", idev);
+
+    fprintf(file, "DEVICE[%zu] MAX WORK GROUP SIZE PER DIMENSION: {", idev);
+
+    for (size_t i = 0; i < dimension - 1; ++i)
     {
-        *n = n_;
+        fprintf(file, "%zu, ", dim_size[i]);
     }
+    size_t i = dimension - 1;
+    fprintf(file, "%zu}\n", dim_size[i]);
+    free(dim_size);
+
+
+    fprintf(file, "---------------------------------\n");
 }
 
-size_t GetMaxWorkFromDevice(cl_device_id *device)
+void BuildProgramInfo(FILE *f, cl_program program, cl_device_id dev, cl_int errCode)
 {
-    size_t maxWork;
-    int err = clGetDeviceInfo(*device, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(size_t), &maxWork, NULL);
-    PrintCLError(stderr, err, "GET DEVICE MAX WORK GROUP SIZE");
-    return maxWork;
-}
+    size_t size;
+    cl_int err = clGetProgramBuildInfo(program, dev, CL_PROGRAM_BUILD_LOG, 0, NULL, &size);
+    PrintCLError(stderr, err, "ERROR GETTING BUILD LOG SIZE");
 
-size_t GetMaxAllocMemoryBytesDevice(cl_device_id *device)
-{
-    size_t maxMem;
-    int err = clGetDeviceInfo(*device, CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof(size_t), &maxMem, NULL);
-    PrintCLError(stderr, err, "GET DEVICE MAX ALLOC MEM SIZE");
-    return maxMem;
-}
+    char *info = (char*)malloc(size);
 
-size_t GetMaxMemoryBytesDevice(cl_device_id *device)
-{
-    size_t maxMem;
-    int err = clGetDeviceInfo(*device, CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(size_t), &maxMem, NULL);
-    PrintCLError(stderr, err, "GET DEVICE MAX GLOBAL MEM SIZE");
-    return maxMem;
-}
+    err = clGetProgramBuildInfo(program, dev, CL_PROGRAM_BUILD_LOG, size, info, NULL);
+    PrintCLError(stderr, err, "ERROR GETTING BUILD LOG");
 
-void InitContext(cl_context *context, cl_device_id *device)
-{
-    int err;
-    *context = clCreateContext(NULL, 1, device, NULL, NULL, &err);
-    PrintCLError(stderr, err, "CREATE CONTEXT");
-}
-
-void InitQueue(cl_command_queue *queue, cl_context *context, cl_device_id *device)
-{
-    int err;
-    *queue = clCreateCommandQueue(*context, *device, 0, &err);
-    PrintCLError(stderr, err, "CREATE QUEUE");
-}
-
-void InitKernel(cl_kernel *kernel, cl_program *program, const char *name)
-{
-    int err;
-    *kernel = clCreateKernel(*program, name, &err);
-    PrintCLError(stderr, err, "CREATE KERNEL %s", name);
-}
-
-void InitKernels(cl_kernel **kernels, cl_program *program, const char **names, int n)
-{
-    *kernels = (cl_kernel*) malloc(sizeof(cl_kernel) * n);
-    for (int i = 0; i < n; i++)
-    {
-        InitKernel(&(*kernels)[i], program, names[i]);
-    }
-}
-
-void InitProgram(cl_program *program, cl_context *context, int n, const char **names)
-{
-    int err;
-    *program = clCreateProgramWithSource(*context, n, names, NULL, &err);
-    PrintCLError(stderr, err, "CREATE PROGRAM");
-}
-
-void BuildProgram(cl_program *program, int ndevices, cl_device_id *devices, const char *opt)
-{
-    int err = clBuildProgram(*program, ndevices, devices, opt, NULL, NULL);
-
-    for (int i = 0; i < ndevices; i++)
-    {
-        size_t length;
-        err = clGetProgramBuildInfo(*program, devices[i], CL_PROGRAM_BUILD_LOG, 0, NULL, &length);
-        char *buildlog = (char*)malloc(length);
-        err = clGetProgramBuildInfo(*program, devices[i], CL_PROGRAM_BUILD_LOG, length, buildlog, NULL);
-        printf("PROGRAM ON DEVICE[%d] BUILD LOG: %s\n", i, buildlog);
-        PrintCLError(stderr, err, "GET PROGRAM BUILD LOG");
-        free(buildlog);
-    }
-}
-
-void BuildProgramOnDevice(cl_program *program, int idevice, cl_device_id *device, const char *opt)
-{
-    int err = clBuildProgram(*program, 1, device, opt, NULL, NULL);
-    size_t length;
-    err = clGetProgramBuildInfo(*program, *device, CL_PROGRAM_BUILD_LOG, 0, NULL, &length);
-    char *buildlog = (char*)malloc(length);
-    err = clGetProgramBuildInfo(*program, *device, CL_PROGRAM_BUILD_LOG, length, buildlog, NULL);
-    printf("PROGRAM ON DEVICE[%d] BUILD LOG: %s\n", idevice, buildlog);
-    PrintCLError(stderr, err, "GET PROGRAM BUILD LOG");
-    free(buildlog);
-}
-
-void InitGlobalWorkItems1D(int nTodo, size_t *WorkTodo)
-{
-    *WorkTodo = nTodo;
-}
-
-void InitGroupWorkItemsGCD1D(int nTodo, size_t *WorkTodo, cl_device_id *device)
-{
-    size_t maxW = GetMaxWorkFromDevice(device) / 2;
-    *WorkTodo = gcd(maxW, nTodo);
-}
-
-void InitGroupWorkItemsYGCD1D(int nTodo, size_t *WorkTodo, int YGCD)
-{
-    *WorkTodo = gcd(YGCD, nTodo);
-}
-
-void InitGlobalWorkItemsND(int nDims, int *nTodo, size_t **WorkTodo)
-{
-    *WorkTodo = (size_t*)malloc(sizeof(size_t) * nDims);
-    for (int i = 0; i < nDims; i++)
-    {
-        (*WorkTodo)[i] = nTodo[i];
-    }
-}
-
-void InitGroupWorkItemsGCDND(int nDims, int *nTodo, size_t **WorkTodo, cl_device_id *device)
-{
-    *WorkTodo = (size_t*)malloc(sizeof(size_t) * nDims);
-    size_t maxW = GetMaxWorkFromDevice(device) / 2;
-    for (int i = 0; i < nDims; i++)
-    {
-        (*WorkTodo)[i] = gcd(maxW, nTodo[i]);
-    }
-}
-
-void InitGroupWorkItemsYGCDND(int nDims, int *nTodo, size_t **WorkTodo, int YGCD)
-{
-    *WorkTodo = (size_t*)malloc(sizeof(size_t) * nDims);
-    for (int i = 0; i < nDims; i++)
-    {
-        (*WorkTodo)[i] = gcd(YGCD, nTodo[i]);
-    }
-}
-
-void EnqueueND(cl_command_queue *queue, Kernel *kernel, cl_uint ndim, size_t *offset, 
-                size_t *globalWork, size_t *localWork)
-{
-    int err = clEnqueueNDRangeKernel(*queue, *(kernel->kernel), ndim, offset, globalWork, localWork, 0, NULL, NULL);
-    PrintCLError(stderr, err, "ENQUEUE ND RANGE KERNEL %s", kernel->name);
-}
-
-void EnqueueNDk(cl_command_queue *queue, cl_kernel *kernel, cl_uint ndim, size_t *offset, 
-                size_t *globalWork, size_t *localWork)
-{
-    int err = clEnqueueNDRangeKernel(*queue, *kernel, ndim, offset, globalWork, localWork, 0, NULL, NULL);
-    PrintCLError(stderr, err, "ENQUEUE ND RANGE KERNEL");
-}
-
-void Finish(cl_command_queue *q)
-{
-    int err = clFinish(*q);
-    PrintCLError(stderr, err, "FINISH QUEUE");
-}
-
-void SetKernelArg(Kernel *kernel, void *data, size_t datasize, cl_uint i)
-{
-    int err = clSetKernelArg(*(kernel->kernel), i, datasize, data);
-    PrintCLError(stderr, err, "ERROR SETTING ARG %d OF KERNEL %s", i, kernel->name);
-}
-
-void SetKernelArgk(cl_kernel *kernel, void *data, size_t datasize, cl_uint i)
-{
-    int err = clSetKernelArg(*kernel, i, datasize, data);
-    PrintCLError(stderr, err, "ERROR SETTING ARG %d OF SIZE %zu", i, datasize);
+    fprintf(f, "---------------------------------\n");
+    fprintf(f, "BUILD LOG: \n%s\n", info);
+    fprintf(f, "---------------------------------\n");
+    free(info);
+    PrintCLError(stderr, errCode, "ERROR BUILDING PROGRAM");
 }
 
 #endif // HEADER_IMPL

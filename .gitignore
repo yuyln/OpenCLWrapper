@@ -4,3 +4,4 @@ a.exe
 .vscode
 kernel_.c
 main_.c
+compile.sh
