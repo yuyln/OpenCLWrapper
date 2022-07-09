@@ -147,12 +147,13 @@ void PrintCLError_(FILE *f, int err, const char *m, int line, const char *file)
     }
 }
 
-void ReadFile(const char *path, char **out)
+int ReadFile(const char *path, char **out)
 {
     FILE *f = fopen(path, "rb");
     if (f == NULL)
     {
         fprintf(stderr, "FILE (%s) IS NULL: %s", path, strerror(errno));
+        return -1;
     }
     fseek(f, 0, SEEK_SET);
     fseek(f, 0, SEEK_END);
@@ -167,6 +168,7 @@ void ReadFile(const char *path, char **out)
     }
     (*out)[filesize] = '\0';
     fclose(f);
+    return filesize;
 }
 
 size_t gcd(size_t a, size_t b)
